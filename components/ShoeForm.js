@@ -1,15 +1,31 @@
 import { useFormik } from 'formik';
+import { useRef } from 'react';
 import * as Yup from 'yup';
 import styled from 'styled-components';
 import countries from '../src/countries+cities.json';
-
+import Select from 'react-select';
 import Button from './styled/Button';
 
 const sizeOptions = [
   6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13,
-];
+].map((size) => ({ value: size, label: size }));
+
 const kilometersOptions = [
-  0, 5, 10, 15, 20, 30, 40, 50, 70, 90, 120, 150, 199, 200,
+  { value: 0, label: 'new' },
+  { value: 5, label: '<5' },
+  { value: 10, label: '<10' },
+  { value: 15, label: '<15' },
+  { value: 20, label: '<20' },
+  { value: 30, label: '<30' },
+  { value: 40, label: '<40' },
+  { value: 50, label: '<50' },
+  { value: 60, label: '<60' },
+  { value: 70, label: '<70' },
+  { value: 90, label: '<90' },
+  { value: 120, label: '<120' },
+  { value: 150, label: '<150' },
+  { value: 199, label: '<199' },
+  { value: 200, label: '>200' },
 ];
 
 const Form = styled.form`
@@ -85,6 +101,11 @@ const Field = styled.div`
 `;
 
 const ShoeForm = ({ addShoe }) => {
+  const refCity = useRef(null);
+  const refCountry = useRef(null);
+  const refSize = useRef(null);
+  const refKilometers = useRef(null);
+
   const formik = useFormik({
     initialValues: {
       ownerName: '',
@@ -128,9 +149,49 @@ const ShoeForm = ({ addShoe }) => {
     },
   });
 
-  const countryDetails = countries.find(
+  console.log("@city",formik.values.city)
+  console.log("@country",formik.values.country)
+  console.log("@kilometers",formik.values.kilometers)
+  console.log("@size",formik.values.size)
+
+  const countryDetails = !formik.values.country ? null : countries.find(
     (country) => country.name === formik.values.country
   );
+  const citiesInSetCountry = !countryDetails
+    ? null
+    : countryDetails.cities.map((city) => ({
+        value: city.name,
+        label: city.name,
+      }));
+
+  const countryArray = countries.map((country) => ({
+    value: country.name,
+    label: country.name,
+  }));
+
+  const clearForm = (ref) => {
+    const input = ref.current;
+    if (!input) return;
+    input.clearValue();
+    formik.setFieldValue(input.props.name, "");
+  };
+
+  const customStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      'backgroundColor': 'white', // Cambia el color de fondo del control
+      'borderColor': state.isFocused ? 'blue' : 'gray', // Cambia el color del borde
+      '&:hover': {
+        borderColor: state.isFocused ? 'blue' : 'gray', // Cambia el color del borde al pasar el mouse por encima
+      },
+      'width': '15rem',
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? 'blue' : 'white', // Cambia el color de fondo de la opción seleccionada
+      color: state.isFocused ? 'white' : 'black', // Cambia el color del texto de la opción seleccionada
+    }),
+  };
 
   const _renderError = (id) =>
     formik.touched[id] && formik.errors[id] ? (
@@ -180,13 +241,15 @@ const ShoeForm = ({ addShoe }) => {
       </Field>
 
       <Field>
-        <select id="size" {...formik.getFieldProps('size')}>
-          {sizeOptions.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
+        <Select
+          ref={refSize}
+          placeholder="size"
+          name="size"
+          onChange={(option) => {
+            !option ? '' : formik.setFieldValue('size', option.value);
+          }}
+          options={sizeOptions}
+          styles={customStyles}></Select>
         <label htmlFor="size">size</label>
         {_renderError('size')}
       </Field>
@@ -210,84 +273,46 @@ const ShoeForm = ({ addShoe }) => {
       </Field>
 
       <Field>
-        <select name="kilometers" {...formik.getFieldProps('kilometers')}>
-          {kilometersOptions.map((kilometers) => {
-            if (kilometers === 0)
-              return (
-                <option key={kilometers} value={kilometers}>
-                  new
-                </option>
-              );
-            if (kilometers === 200)
-              return (
-                <option
-                  key={kilometers}
-                  value={kilometers}>{`>${kilometers}`}</option>
-              );
-            return (
-              <option
-                key={kilometers}
-                value={kilometers}>{`<${kilometers}`}</option>
-            );
-          })}
-        </select>
+        <Select
+          ref={refKilometers}
+          placeholder="kilometers"
+          name="kilometers"
+          onChange={(option) =>
+            !option ? '' : formik.setFieldValue('kilometers', option.value)
+          }
+          options={kilometersOptions}
+          styles={customStyles}></Select>
         <label htmlFor="kilometers">kilometers</label>
         {_renderError('kilometers')}
       </Field>
 
       <Field>
-        <input
+        <Select
+          ref={refCountry}
           placeholder="country"
           name="country"
-          type="text"
-          {...formik.getFieldProps('country')}
-          id="country"
-          list="countries"
-        />
-        <datalist id="countries">
-          {countries.map((country) => (
-            <option value={country.name} key={country.id}>
-              {country.name}
-            </option>
-          ))}
-        </datalist>
-        {!formik.values.country ? null : (
-          <button
-            style={{ padding: '0.5rem' }}
-            type="button"
-            onClick={() => formik.setFieldValue('country', '')}>
-            X
-          </button>
-        )}
+          onChange={(option) =>
+            !option ? '' : formik.setFieldValue('country', option.value)
+          }
+          options={countryArray}
+          styles={customStyles}
+          isClearable></Select>
         {_renderError('country')}
       </Field>
 
       <Field>
-        <input
+        <Select
+          ref={refCity}
           placeholder="city"
           name="city"
-          {...formik.getFieldProps('city')}
-          type="text"
-          id="city"
-          list="cities"
+          onChange={(option) =>
+            !option ? '' : formik.setFieldValue('city', option.value)
+          }
+          options={citiesInSetCountry ? citiesInSetCountry : []}
+          styles={customStyles}
+          isClearable
         />
-        <datalist id="cities">
-          {!countryDetails
-            ? null
-            : countryDetails.cities.map((city) => (
-                <option value={city.name} key={city.id}>
-                  {city.name}
-                </option>
-              ))}
-        </datalist>
-        {!formik.values.city ? null : (
-          <button
-            style={{ padding: '0.5rem' }}
-            type="button"
-            onClick={() => formik.setFieldValue('city', '')}>
-            X
-          </button>
-        )}
+        {_renderError('city')}
       </Field>
 
       <Field>
@@ -327,7 +352,12 @@ const ShoeForm = ({ addShoe }) => {
 
       <Field>
         <Button
-          onClick={formik.handleReset}
+          onClick={() => {
+            clearForm(refCity);
+            clearForm(refCountry);
+            clearForm(refKilometers);
+            clearForm(refSize);
+          }}
           type="reset"
           margin="1em 0"
           primary>
